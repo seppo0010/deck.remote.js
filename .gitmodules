@@ -1,0 +1,6 @@
+[submodule "deck-remote-server/websocket-server"]
+	path = deck-remote-server/websocket-server
+	url = https://github.com/Worlize/WebSocket-Node.git
+[submodule "example/deck.js"]
+	path = example/deck.js
+	url = https://github.com/imakewebthings/deck.js.git
