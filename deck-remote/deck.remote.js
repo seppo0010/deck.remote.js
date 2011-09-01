@@ -26,10 +26,24 @@ the deck container.
 		myWebSocket: null,
 		ip: '127.0.0.1',
 		port: '8080',
+		reconnectAttempt: null,
+		reconnect: function() {
+			if (this.myWebSocket != null && this.myWebSocket.readyState <= WebSocket.OPEN) return;
+			if (this.reconnectAttempt) return;
+			var $this = this;
+			this.reconnectAttempt = setTimeout(function() { $this.init() }, 1000);
+		},
 		init: function() {
+			this.reconnectAttempt = null;
+
 			if ('WebSocket' in window == false && 'MozWebSocket' in window) window.WebSocket = window.MozWebSocket;
 
-			this.myWebSocket = new WebSocket("ws://" + this.ip + ":" + this.port);
+			try {
+				this.myWebSocket = new WebSocket("ws://" + this.ip + ":" + this.port);
+			} catch (e) {
+				this.reconnect();
+				return;
+			}
 
 			if (location.href.indexOf('#mirror') != -1) {
 				this.initMirror(parseInt(location.href.substr(7+location.href.indexOf('#mirror'))));
@@ -38,6 +52,7 @@ the deck container.
 			$this = this;
 			this.myWebSocket.onopen = function(evt) {
 				$this.myWebSocket.send('{"type":"identify", "data":"server", "url":"' + location.href + '"}');
+				$this.sendStatus();
 			};
 			this.myWebSocket.onmessage = function(evt) {
 				try {
@@ -49,7 +64,9 @@ the deck container.
 				} catch (e) {
 				}
 			};
-			this.myWebSocket.onclose = function(evt) {};
+			this.myWebSocket.onclose = function(evt) {
+				$this.reconnect();
+			};
 		},
 		initMirror: function(offset) {
 			$this = this;
@@ -65,7 +82,9 @@ the deck container.
 				} catch (e) {
 				}
 			};
-			this.myWebSocket.onclose = function(evt) {};
+			this.myWebSocket.onclose = function(evt) {
+				$this.reconnect();
+			};
 			this.sendStatus = function() {};
 		},
 		sendStatus: function() {

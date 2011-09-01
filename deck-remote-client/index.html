@@ -71,9 +71,25 @@ if ('WebSocket' in window == false && 'MozWebSocket' in window) window.WebSocket
 
 var remoteClient = {
 	myWebSocket: null,
+	ip: '127.0.0.1',
+	port: '8080',
+	reconnectAttempt: null,
+	reconnect: function() {
+		if (this.myWebSocket != null && this.myWebSocket.readyState <= WebSocket.OPEN) return;
+		if (this.reconnectAttempt) return;
+		var $this = this;
+		this.reconnectAttempt = setTimeout(function() { $this.init() }, 1000);
+	},
 	init: function() {
-		$this = this;
-		this.myWebSocket = new WebSocket("ws://127.0.0.1:8080"),
+		this.reconnectAttempt = null;
+
+		var $this = this;
+		try {
+			this.myWebSocket = new WebSocket("ws://" + this.ip + ":" + this.port);
+		} catch (e) {
+			this.reconnect();
+			return;
+		}
 		this.myWebSocket.onopen = function(evt) {
 			$this.myWebSocket.send('{"type":"identify", "data":"client"}');
 		};
@@ -90,6 +106,7 @@ var remoteClient = {
 			}
 		};
 		this.myWebSocket.onclose = function(evt) {
+			$this.reconnect();
 		};
 	},
 	next: function() {
