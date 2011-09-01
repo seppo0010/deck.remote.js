@@ -20,6 +20,13 @@ iframe {
 	float: left;
 }
 
+div#notes {
+	width: 20%;
+	position: absolute;
+	left: 0;
+	top: 300px;
+}
+
 p#cur_frame_label {
 	width: 50%;
 	text-align: center;
@@ -36,14 +43,6 @@ iframe#cur_frame {
 	left: 25%;
 }
 
-p#prev_frame_label {
-	width: 20%;
-	text-align: center;
-	position: absolute;
-	left: 0;
-	bottom: 300px;
-}
-
 iframe#prev_frame {
 	position: absolute;
 	left: 0;
@@ -55,7 +54,7 @@ p#next_frame_label {
 	text-align: center;
 	position: absolute;
 	right: 0;
-	bottom: 300px;
+	top: 270px;
 }
 
 iframe#next_frame {
@@ -82,10 +81,10 @@ var remoteClient = {
 			var data = jQuery.parseJSON(evt.data);
 			if (data.type == 'status') {
 				$('#current-slide').text(data.data.currentSlide + 1);
+				$('#notes').text(data.data.notes);
 			}
 			if (data.type == 'url') {
 				$this.url = data.data;
-				$('#prev_frame').attr('src', $this.url + '#mirror-1');
 				$('#cur_frame').attr('src', $this.url + '#mirror+0');
 				$('#next_frame').attr('src', $this.url + '#mirror+1');
 			}
@@ -148,8 +147,8 @@ $(function() { $('#start-stop-clock').click(clock.start); });
 <a href="#" id="next">&gt;&gt;</a><br />
 <span id="clock"></span><br />
 <a href="#" id="start-stop-clock">Start Timer</a><br />
-<p id="prev_frame_label">Previous Slide</p>
-<iframe id="prev_frame"></iframe>
+<div id="notes">
+</div>
 <p id="cur_frame_label">Current Slide</p>
 <iframe id="cur_frame"></iframe>
 <p id="next_frame_label">Next Slide</p>
