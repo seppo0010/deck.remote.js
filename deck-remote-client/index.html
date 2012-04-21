@@ -65,55 +65,34 @@ iframe#next_frame {
 
 </style>
 <script src="jquery.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
 try {
-if ('WebSocket' in window == false && 'MozWebSocket' in window) window.WebSocket = window.MozWebSocket;
-
 var remoteClient = {
-	myWebSocket: null,
+	socket: null,
 	ip: '127.0.0.1',
 	port: '8080',
-	reconnectAttempt: null,
-	reconnect: function() {
-		if (this.myWebSocket != null && this.myWebSocket.readyState <= WebSocket.OPEN) return;
-		if (this.reconnectAttempt) return;
-		var $this = this;
-		this.reconnectAttempt = setTimeout(function() { $this.init() }, 1000);
-	},
 	init: function() {
-		this.reconnectAttempt = null;
-
 		var $this = this;
-		try {
-			this.myWebSocket = new WebSocket("ws://" + this.ip + ":" + this.port);
-		} catch (e) {
-			this.reconnect();
-			return;
-		}
-		this.myWebSocket.onopen = function(evt) {
-			$this.myWebSocket.send('{"type":"identify", "data":"client"}');
-		};
-		this.myWebSocket.onmessage = function(evt) {
-			var data = jQuery.parseJSON(evt.data);
-			if (data.type == 'status') {
-				$('#current-slide').text(data.data.currentSlide + 1);
-				$('#notes').text(data.data.notes);
-			}
-			if (data.type == 'url') {
-				$this.url = data.data;
-				$('#cur_frame').attr('src', $this.url + '#mirror+0');
-				$('#next_frame').attr('src', $this.url + '#mirror+1');
-			}
-		};
-		this.myWebSocket.onclose = function(evt) {
-			$this.reconnect();
-		};
+		this.socket = io.connect(this.ip + ":" + this.port);
+		this.socket.on('connect', function(evt) {
+			$this.socket.send("identify","client");
+		});
+		this.socket.on('status', function(data) {
+			$('#current-slide').text(data.currentSlide + 1);
+			$('#notes').text(data.notes);
+		});
+		this.socket.on('url', function(data) {
+			$this.url = data;
+			$('#cur_frame').attr('src', $this.url + '#mirror+0');
+			$('#next_frame').attr('src', $this.url + '#mirror+1');
+		});
 	},
 	next: function() {
-		this.myWebSocket.send('{"type":"command", "data":"next"}');
+		this.socket.emit("command", "next");
 	},
 	prev: function() {
-		this.myWebSocket.send('{"type":"command", "data":"prev"}');
+		this.socket.emit("command", "prev");
 	},
 }
 remoteClient.init();

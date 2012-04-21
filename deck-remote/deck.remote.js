@@ -23,73 +23,40 @@ the deck container.
 
 	var remoteServer = {
 		currentSlide: 0,
-		myWebSocket: null,
+		socket: null,
 		ip: '127.0.0.1',
 		port: '8080',
-		reconnectAttempt: null,
-		reconnect: function() {
-			if (this.myWebSocket != null && this.myWebSocket.readyState <= WebSocket.OPEN) return;
-			if (this.reconnectAttempt) return;
-			var $this = this;
-			this.reconnectAttempt = setTimeout(function() { $this.init() }, 1000);
-		},
 		init: function() {
-			this.reconnectAttempt = null;
-
-			if ('WebSocket' in window == false && 'MozWebSocket' in window) window.WebSocket = window.MozWebSocket;
-
-			try {
-				this.myWebSocket = new WebSocket("ws://" + this.ip + ":" + this.port);
-			} catch (e) {
-				this.reconnect();
-				return;
-			}
+			this.socket = io.connect(this.ip + ":" + this.port);
 
 			if (location.href.indexOf('#mirror') != -1) {
 				this.initMirror(parseInt(location.href.substr(7+location.href.indexOf('#mirror'))));
 				return;
 			}
-			$this = this;
-			this.myWebSocket.onopen = function(evt) {
-				$this.myWebSocket.send('{"type":"identify", "data":"server", "url":"' + location.href + '"}');
+			var $this = this;
+			this.socket.on('connect', function(evt) {
+				$this.socket.emit("identify", {"name":"server", "url":location.href});
 				$this.sendStatus();
-			};
-			this.myWebSocket.onmessage = function(evt) {
-				try {
-					var data = jQuery.parseJSON(evt.data);
-					if (data.type == 'command') {
-						if (data.data == 'next') { $.deck('next'); }
-						if (data.data == 'prev') { $.deck('prev'); }
-					}
-				} catch (e) {
-				}
-			};
-			this.myWebSocket.onclose = function(evt) {
-				$this.reconnect();
-			};
+			});
+			this.socket.on('command', function(data) {
+				if (data == 'next') { $.deck('next'); }
+				if (data == 'prev') { $.deck('prev'); }
+			});
 		},
 		initMirror: function(offset) {
 			$this = this;
-			this.myWebSocket.onopen = function(evt) {
-				$this.myWebSocket.send('{"type":"identify", "data":"servermirror"}');
-			};
-			this.myWebSocket.onmessage = function(evt) {
-				try {
-					var data = jQuery.parseJSON(evt.data);
-					if (data.type == 'status') {
-						$[deck]('go', data.data.currentSlide + offset);
-					}
-				} catch (e) {
-				}
-			};
-			this.myWebSocket.onclose = function(evt) {
-				$this.reconnect();
-			};
+			this.socket.on('connect', function(evt) {
+				$this.socket.emit("identify", "servermirror");
+			});
+			this.socket.on('slideStatus', function(data) {
+				$[deck]('go', data.currentSlide + offset);
+			});
 			this.sendStatus = function() {};
 		},
 		sendStatus: function() {
 			var notes = $('.hidden-notes', $[deck]('getSlide', this.currentSlide)).text();
-			this.myWebSocket.send(JSON.stringify({"type":"status", "data": { "currentSlide": this.currentSlide, "notes":  notes } }));
+			this.socket.emit("identify", {"name":"server", "url":location.href});
+			this.socket.emit("slideStatus", { "currentSlide": this.currentSlide, "notes":  notes });
 		}
 	};
 	$[deck]('extend', 'remoteInit', function() {
